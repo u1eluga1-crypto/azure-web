@@ -1,0 +1,49 @@
+name: Trigger auto deployment for aca-aichat-dev2
+
+# When this action will be executed
+on:
+  # Automatically trigger it when detected changes in repo
+  push:
+    branches: 
+      [ main ]
+    paths:
+    - '**'
+    - '.github/workflows/aca-aichat-dev2-AutoDeployTrigger-f0b81c56-2cb3-47a6-83cf-1404026b137a.yml'
+
+  # Allow manual trigger 
+  workflow_dispatch:      
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions: 
+      id-token: write #This is required for requesting the OIDC JWT Token
+      contents: read #Required when GH token is used to authenticate with private repo
+
+    steps:
+      - name: Checkout to the branch
+        uses: actions/checkout@v2
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.ACAAICHATDEV2_AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.ACAAICHATDEV2_AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.ACAAICHATDEV2_AZURE_SUBSCRIPTION_ID }}
+
+      - name: Build and push container image to registry
+        uses: azure/container-apps-deploy-action@v2
+        with:
+          appSourcePath: ${{ github.workspace }}
+          _dockerfilePathKey_: _dockerfilePath_
+          _targetLabelKey_: _targetLabel_
+          registryUrl: 
+          registryUsername: ${{ secrets.ACAAICHATDEV2_REGISTRY_USERNAME }}
+          registryPassword: ${{ secrets.ACAAICHATDEV2_REGISTRY_PASSWORD }}
+          containerAppName: aca-aichat-dev2
+          resourceGroup: rg-wellcabin-dev
+          imageToBuild: default/[parameters('containerAppName')]:${{ github.sha }}
+          _buildArgumentsKey_: |
+            _buildArgumentsValues_
+
+
